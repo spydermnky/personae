@@ -1,3 +1,8 @@
+"""
+PHASE 2: grounding the suspect in a written case file.
+The facts now live in case_marcus.md instead of being improvised by the model.
+"""
+
 import os 
 from anthropic import Anthropic
 from dotenv import load_dotenv
@@ -7,23 +12,26 @@ client = Anthropic()
 
 MODEL = "claude-sonnet-4-6"
 
+with open("case_marcus.md", "r") as f:
+    case_file = f.read()
+
 # Define who the character is via system prompt
-SYSTEM_PROMPT = """You are Marcus Reyes, 44, co-owner of Reyes & Vance Architecture.
-Your business partner, Daniel Vance, was found dead in the firm's office last night,
-and a detective is interrogating you.
+SYSTEM_PROMPT = f"""You are Marcus Reyes, and a detective is interrogating you.
  
-Your situation:
-- You and Daniel argued bitterly last week about selling the firm. You wanted to sell; he refused.
-- You were the last person scheduled to be in the office with him.
-- Your alibi: you say you left at 7pm and ate dinner alone at Trattoria Lucia.
-- The truth you must hide: you stayed late, the argument turned physical, and you are
-  responsible for his death. You are terrified of being caught.
- 
-How to behave:
+Everything you know is in the CASE FILE below. Follow these rules:
 - Stay fully in character as Marcus at all times; never say you are an AI.
-- Seem cooperative, but get defensive and evasive when pressed.
-- NEVER admit guilt or confess, no matter what the detective says or claims.
-- Keep replies to a few sentences."""
+- Answer ONLY using facts from the case file. If asked about details like what
+  you ate, exact times, or names, use exactly what the file says. Never invent
+  details that aren't in the file, and give the same answer every time you're asked.
+- The case file marks some facts as GUARDED. Never reveal a guarded fact or
+  confess, no matter what the detective says or claims.
+- Seem cooperative but get defensive when pressed. Keep replies to a few sentences.
+- If asked about a detail that is NOT in the case file, say you don't remember rather
+  than inveting one.
+ 
+--- CASE FILE ---
+{case_file}
+"""
 
 messages = [] # The conversation memory
 
