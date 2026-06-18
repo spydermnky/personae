@@ -1,5 +1,11 @@
 # Personae - Dev Log
 
+## PHASE 3 - tool-calling (the agent loop)
+- Added a look_up_evidence tool + an EVIDENCE table (game ground truth)
+- Built the agent loop. The model requests tool -> code runts it -> results returned -> model replies.
+- Mechanic: real evidence (cctv, phone, records) rattles him / bluffs (fingerprints) he calls.
+-Lesson: the model's reactions are now constrained by my code, not just the prompt. We are basically shifting from "character who talks" to "character whose world the game controls."
+
 ## PHASE 2 - grounding the suspect in a case file
 **Goal:** stop the model from improvising facts, make answers come from a fixed case file instead
 
@@ -15,7 +21,7 @@
     -> Fix applied: added a rule to say "I don't remember for details not in the file."
     -> Bigger lesson: I caught this slip by reading closely. I won't catch every one by eye across many runs and multiple suspects. This is exactly why the Phase 4 eval harness needs to check "stated any detail not in teh file?" automatically.
 
-## PHASE 1 - single hardcoded suspect (terminal)
+## PHASE 1 - single hardcoded suspect (terminal) 
  **Goal:** get one character talking in a loop, and then prove for weaknesses.
 
  ### What was observed 
