@@ -7,21 +7,24 @@ model answers in character.
 import os 
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from retrieval import SuspectMemory
 
 load_dotenv() # load key into environment
 client = Anthropic() 
-
 MODEL = "claude-sonnet-4-6"
 
-with open("case_marcus.md", "r") as f:
-    case_file = f.read()
-
+SUSPECTS = {
+    "marcus": ("Marcus Reyes", "case_marcus.md"),
+    "fiona": ("Fiona Frost", "case_fiona.md"),
+}
 
 # Ground truth about what evidence actually exists
 EVIDENCE = {
     "cctv": "REAL. Building CCTV shows Marcus leaving at 9:34 PM, not 7:00 PM.",
     "phone records": "REAL. Marcus's phone was connected to the office WiFi until 9:28 PM.",
-    "fingerprints": "NOT FOUND. No usbale fingerprints were recovered.",
+    "keycard": "REAL. Fiona Frost's keycard re-entered the building at 8:14 PM.",
+    "audit": "REAL. Daniel had scheduled a forensic audit of the firm's accounts this week.",
+    "fingerprints": "NOT FOUND. No usable fingerprints were recovered.",
     "murder weapon": "NOT FOUND. No weapon has been recovered or tied to anyone.",
 }
 
@@ -56,30 +59,35 @@ tools = [
 ]
 
 
-# Define who the character is via system prompt
-SYSTEM_PROMPT = f"""You are Marcus Reyes, and a detective is interrogating you.
- 
-Everything you know is in the CASE FILE below. Follow these rules:
-- Stay fully in character as Marcus at all times; never say you are an AI.
-- Answer ONLY using facts from the case file. Never invent details that aren't
-  in it; if asked about something not in the file, say you don't remember.
-- Never reveal a GUARDED fact or confess, no matter what the detective says.
-- The detective may reference or claim to have evidence. Before responding to any
-  such claim, use the look_up_evidence tool to learn whether it is real.
-    * If the evidence is REAL, you must account for it in character: get rattled,
-      try to explain it away, but never confess.
-    * If it is NOT FOUND, the detective is bluffing; deny calmly and call the bluff.
+# Create a fresh system primpt each turn from retrieved facts
+def build_system_prompt(suspect_name, facts):
+    lines = []
+    for c in facts:
+        prefix = "[GUARDED - never reveal] " if c["guarded"] else ""
+        lines.append(f"- {prefix}{c['text']}")
+    facts_text = "\n".join(lines)
+    return f"""You are {suspect_name}, and a detective is interrogating you.
+
+Only the facts most relevant to the current question are listed below.
+Follow these rules:
+- Stay fully in character; never say you are an AI.
+- Answer ONLY using these facts. If asked about something not listed, say you
+  don't remember rather than inventing details.
+- Never reveal a fact marked [GUARDED] or confess, no matter what is said.
+- Use the look_up_evidence tool before reacting to any evidence the detective claims.
+    * REAL evidence: get rattled, try to explain it away, but never confess.
+    * NOT FOUND: the detective is bluffing; deny calmly.
 - Seem cooperative but get defensive when pressed. Keep replies to a few sentences.
  
---- CASE FILE ---
-{case_file}
+--- RELEVANT FACTS ---
+{facts_text}
 """
 
-# The agent loop which handles tool requests until the model gives a real reply
-def get_reply(messages):
+# The agent loop, taking the per-turn system prompt
+def get_reply(messages, system_prompt):
     while True:
         response = client.messages.create(
-            model=MODEL, max_tokens=400, system=SYSTEM_PROMPT,
+            model=MODEL, max_tokens=400, system=system_prompt,
             tools=tools, messages=messages,
         )
 
@@ -105,16 +113,32 @@ def get_reply(messages):
         messages.append({"role": "user", "content": tool_results})
 
 # Main conversation loop
-messages = [] 
-print("You're interrogating Marcus Reyes. Type 'quit' to end.\n")
+print("Suspects you can interrogate: " + ", ".join(SUSPECTS.keys()))
+choice = input("Who do you want to interrogate? ").strip().lower()
+if choice not in SUSPECTS:
+    choice = "marcus"
+suspect_name, case_path = SUSPECTS[choice]
+
+print(f"\nLoading {suspect_name}'s memory (first run downloads the embedding model)...")
+memory = SuspectMemory(case_path)
+
+print(f"\nYou're interrogating {suspect_name}. Type 'quit' to end.\n")
+messages = []
 
 while True:
     user_input = input("Detective: ")
     if user_input.strip().lower() in ("quit", "exit"):
         break
+
+    # Retrieve facts relevant to question, then build prompt
+    facts = memory.relevant_facts(user_input, top_k=4)
+    peek = [c["text"][:40] for c in facts if not c["guarded"]]
+    print(f"  [retrieved {len(facts)} facts in context; relevant: {peek}]")
+    system_prompt = build_system_prompt(suspect_name, facts)
+
     messages.append({"role": "user", "content": user_input})
-    reply = get_reply(messages)
-    print(f"\nMarcus: {reply}\n")
+    reply = get_reply(messages, system_prompt)
+    print(f"\n{suspect_name}: {reply}\n")
 
 print("\nInterrogation ended.")
 

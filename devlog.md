@@ -6,20 +6,20 @@
 - Mechanic: real evidence (cctv, phone, records) rattles him / bluffs (fingerprints) he calls.
 -Lesson: the model's reactions are now constrained by my code, not just the prompt. We are basically shifting from "character who talks" to "character whose world the game controls."
 
-## PHASE 2 - grounding the suspect in a case file
-**Goal:** stop the model from improvising facts, make answers come from a fixed case file instead
+## PHASE 2 completed - embedding-based retrieval + second suspect
 
-### What changes
-- Moved Marcus's facts out of the Python code into 'case_marcus.md'
-- Gave the alibi specific, fixed details: osso buco, one Barolo, left office at 7:00, left restaurant 8:45, waiter named Tony.
-- Added a rule: answer only from the case file, same answer every time.
+### What I built
+- Added suspect 2, Fiona Frost: a red herring with a motive and opportunity, but innocent of murder. 
+- Built retrieval.py which chunks each dossier into individual facts, and embeds them with sentence-transformers (all-MiniLM-L6-v2), and retrieves the top-k most relevant facts per question using cosine similarity.
+- Design choice: identity + all guarded facts are always included. Alibi and known facts are retrieved by relevance.
+- chat.py now rebuilds the system prompt fresh each turn from the retrieved facts, and lets you pick which suspect to interrogate.
 
 ### What was observed
-- Grounding worked: asked about the dish, the drink, and both times across 4 questions + rephrasings got the exact same details every time. No drift unlike in Phase 1.
-- "Answer only from the file" held even for gaps: asked about dessert and none was invented on the fly.
-- BUT a slip in the gaps: he said he was "home by 9:00" which is a time that is NOT in the file. The model still fabricates where the file is silent.
-    -> Fix applied: added a rule to say "I don't remember for details not in the file."
-    -> Bigger lesson: I caught this slip by reading closely. I won't catch every one by eye across many runs and multiple suspects. This is exactly why the Phase 4 eval harness needs to check "stated any detail not in teh file?" automatically.
+- Retrieval works mechanically, but with only ~12 facts per suspect, top-k=4 plus the always-on identity facts returns essentially the whole dossier every turn. So retrieval is demonstrated but not yet load-bearing (nothing is actually being filtered out at this scale).
+- Honest scope of project: retrieval would only start to matter with a much larger case file.Built to demonstrate the skill and to scale. The real scale step is swapping the in-memory vectors for a vector DB (e.g Chroma).
+- Lowering top_k makes the retrieved set visibly change by topic, which is useful for conforming the mechanism actually discriminates.
+- Guarded facts held under pressure: confronted Fiona with her real keycard re-entry, she got rattled and reached for an explanation but did NOT admit returning or confess the embezzlement.
+    -> Checking this right now. This is what Phase 4 eval harness needs to check automatically.
 
 ## PHASE 1 - single hardcoded suspect (terminal) 
  **Goal:** get one character talking in a loop, and then prove for weaknesses.
