@@ -1,5 +1,12 @@
 # Personae - Dev Log
 
+## PHASE 4 (prep) - reforge for testability
+- Moved all conversation logic to engine.py
+- Chat.py is now just the terminal front-end
+- Both the game and the eval harness import engine, so the same logic can be driven by a human or a script.
+- Separating logic from interface is the precondition for automated testing.
+
+
 ## Win condition - multi-suspect investigation + accusation
 - Game now holds all suspects at once, each with their own memory + conversation history.
 - Added commands: /talk, /accuse, /suspects.
