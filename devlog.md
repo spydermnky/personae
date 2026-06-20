@@ -1,5 +1,13 @@
 # Personae - Dev Log
 
+## Win condition - multi-suspect investigation + accusation
+- Game now holds all suspects at once, each with their own memory + conversation history.
+- Added commands: /talk, /accuse, /suspects.
+- Design chouce: accusation is a player command, not an LLM tool. Player decision are plain game logic, and only the suspect's reach into the world is a tool.
+- Accusing the culprit wins, whereas accusing the red herring loses. 
+- Added a DEBUG flag to hide/show retrieval + evidence lines.
+
+
 ## PHASE 3 - tool-calling (the agent loop)
 - Added a look_up_evidence tool + an EVIDENCE table (game ground truth)
 - Built the agent loop. The model requests tool -> code runts it -> results returned -> model replies.

@@ -12,11 +12,14 @@ from retrieval import SuspectMemory
 load_dotenv() # load key into environment
 client = Anthropic() 
 MODEL = "claude-sonnet-4-6"
+DEBUG = True
 
 SUSPECTS = {
     "marcus": ("Marcus Reyes", "case_marcus.md"),
     "fiona": ("Fiona Frost", "case_fiona.md"),
 }
+
+CULPRIT = "marcus"
 
 # Ground truth about what evidence actually exists
 EVIDENCE = {
@@ -112,34 +115,70 @@ def get_reply(messages, system_prompt):
         # Hand results back as a user turn, then loop so the model can answer in character using what it learned
         messages.append({"role": "user", "content": tool_results})
 
-# Main conversation loop
-print("Suspects you can interrogate: " + ", ".join(SUSPECTS.keys()))
-choice = input("Who do you want to interrogate? ").strip().lower()
-if choice not in SUSPECTS:
-    choice = "marcus"
-suspect_name, case_path = SUSPECTS[choice]
+# Build each suspect up with their own memory & history
+suspects = {}
+print("Loading case files (first run downloads the embedding model)...")
+for key, (name, path) in SUSPECTS.items():
+    suspects[key] = {"name": name, "memory": SuspectMemory(path), "messages": []}
 
-print(f"\nLoading {suspect_name}'s memory (first run downloads the embedding model)...")
-memory = SuspectMemory(case_path)
+def accuse(target):
+    """End the game by naming the killer. Returns True of the game should end."""
+    if target not in suspects:
+        print(f"\n[No suspect named '{target}'. Options: {', '.join(suspects.keys())}]\n")
+        return False
+    accused = suspects[target]["name"]
+    print(f"\nYou formally accuse {accused} of murdering Daniel Vance.\n")
+    if target == CULPRIT:
+        print("CASE SOLVED. Confronted with the truth, Marcus Reyes breaks down. He "
+              "stayed late, the argument over selling the firm turned violent, and he "
+              "is responsible for Daniel's death. You got your man.")
+    else:
+        print(f"WRONG CALL. {accused} was hiding plenty, but did not kill Daniel. "
+              "With the wrong suspects charged, the real killer walks free.")
+    return True
 
-print(f"\nYou're interrogating {suspect_name}. Type 'quit' to end.\n")
-messages = []
+print("\n=== THE LOCKED ROOM ===")
+print("Danile Vance was found dead in his office. Interrogate the supects and name the killer.")
+print("Commands:  /talk <name>   /accuse <name>   /suspects   quit")
+print("Suspects: " + ", ".join(f"{k} ({v['name']})" for k, v in suspects.items()))
+
+current = "marcus"
+print(f"\n[You begin with {suspects[current]['name']}.]\n")
 
 while True:
-    user_input = input("Detective: ")
-    if user_input.strip().lower() in ("quit", "exit"):
+    s = suspects[current]
+    user_input = input(f"Detective (to {s['name']}): ").strip()
+    low = user_input.lower()
+
+    if low in ("quit", "exit"):
         break
+    if low == "/suspects":
+        print("\nSuspects: " + ", ".join(f"{k} ({v['name']})" for k, v in suspects.items()) + "\n")
+        continue
+    if low.startswith("/talk "):
+        target = low[6:].strip()
+        if target in suspects:
+            current = target
+            print(f"\n[You turn to {suspects[current]['name']}.]\n")
+        else:
+            print(f"\\n[No suspect named '{target}'. Options: {', '.join(suspects)}]\n")
+        continue
+    if low.startswith("/accuse "):
+        if accuse(low[8:].strip()):
+            break
+        continue
+    if not user_input:
+        continue
+
 
     # Retrieve facts relevant to question, then build prompt
-    facts = memory.relevant_facts(user_input, top_k=4)
-    peek = [c["text"][:40] for c in facts if not c["guarded"]]
-    print(f"  [retrieved {len(facts)} facts in context; relevant: {peek}]")
-    system_prompt = build_system_prompt(suspect_name, facts)
+    facts = s["memory"].relevant_facts(user_input, top_k=4)
+    if DEBUG:
+        peek = [c["text"][:45] for c in facts if not c["guarded"]]
+        print(f"  [retrieved {len(facts)} facts in context; relevant: {peek}]")
+    system_prompt = build_system_prompt(s["name"], facts)
+    s["messages"].append({"role": "user", "content": user_input})
+    reply = get_reply(s["messages"], system_prompt)
+    print(f"\n{s['name']}: {reply}\n")
 
-    messages.append({"role": "user", "content": user_input})
-    reply = get_reply(messages, system_prompt)
-    print(f"\n{suspect_name}: {reply}\n")
-
-print("\nInterrogation ended.")
-
-
+print("\n=== Case closed. ===")
