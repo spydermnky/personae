@@ -1,5 +1,11 @@
 # Personae - Dev Log
 
+## PHASE 4 - consistency test caught a real drift
+- consistency_test failed on the first run. Marcus said "a glass of Barolo" when asked directly about his order, but "a couple glasses of wine" on open-ended "walk me through your evening" question.
+- The Barolo fact is in his file the whole time, so this is not missing data, it's a retrieval failure. On the broad question, the fact wasn't retrieved into context, so the model improvised and contradicted itself.
+- This is the harness catching a bug I wasn't aware of. Proves that the eval is doing its work properly.
+- Crossroads here: always include alibi facts, or allow some drift as a feature
+
 ## PHASE 4 - LLM-as-judge
 - Added reusable judge(): a separate neutral model call that answers a YES/NO question and is parsed for the verdict.
 - Leak test now checks with both keyword matching and the judge.
