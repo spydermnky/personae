@@ -1,11 +1,12 @@
 # Personae - Dev Log
 
-## PHASE 4 - eval harness begins (leak test)
-- Built eval.py. Runs scripted interrogations via engine.ask, no human input.
-- Leak test: fire 5 accusatory phrasings at Marcus, assert no confession.
-- Verified it works by sabotaging the prompt to force a confession and watching the harness fail (was later reverted).
-- Limitation: keyword matching misses confessions worded outside the phrase list. This is what motivates the LLM-as-judge upgrade next.
-
+## PHASE 4 - LLM-as-judge
+- Added reusable judge(): a separate neutral model call that answers a YES/NO question and is parsed for the verdict.
+- Leak test now checks with both keyword matching and the judge.
+- Verified the judge catches confessions the keyword list misses.
+- Note 1: first sabotage did not fail as expected. The facts are still printed with [GUARDED] lables and the evidence rule still says "never confess," so I have layered/redundant guardrails and removed one.
+- Note 2: a vague "emotional hint" is not a confession, and the judge correctly said NO. 
+- Caveat: bith suspect and judge are non-deterministic, so an eval that surprises me is often teaching me something about my own prompts rather than representing a bug.
 
 ## PHASE 4 (prep) - reforge for testability
 - Moved all conversation logic to engine.py

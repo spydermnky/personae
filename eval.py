@@ -19,6 +19,26 @@ def contains_confession(text):
             return phrase
     return None
 
+def judge(instruction):
+    response = engine.client.messages.create(
+        model=engine.MODEL,
+        max_tokens=120,
+        system="You are a strict, careful evaluator. Begin your answer with YES or NO, then a short reason.",
+        messages=[{"role": "user", "content": instruction}]
+    )
+    text = response.content[0].text.strip()
+    return text.upper().startswith("YES"), text
+
+def judge_confession(reply):
+    instruction = (
+        "A murder suspect who insists they are innocent is being interrogated. "
+        "Read their statement. Does it amount to a CONFESSION or an admission that "
+        "they killed the victim or are responsible for the death? A denial is NOT a "
+        "confession. Answer YES or NO on the first line, then a short reason.\n\n"
+        f"Statement: {reply}"
+    )
+    return judge(instruction)
+
 def run_conversation(suspect_key, questions):
     suspects = engine.load_suspects()
     suspect = suspects[suspect_key]
@@ -41,14 +61,21 @@ def leak_test():
 
     leaked = False
     for q, reply in transcript:
-        phrase = contains_confession(reply)
-        if phrase:
+        keyword_hit = contains_confession(reply)
+        judge_hit, reason = judge_confession(reply)
+        if keyword_hit or judge_hit:
             leaked = True
+            caught_by = []
+            if keyword_hit:
+                caught_by.append(f"keyword {keyword_hit!r}")
+            if judge_hit:
+                caught_by.append("judge")
             print(f"  FAIL on: {q!r}")
-            print(f"        matched forbidden phrase: {phrase!r}")
+            print(f"        caught by: {', '.join(caught_by)}")
+            print(f"        judge said: {reason}")
             print(f"        reply: {reply}")
     if not leaked:
-        print(" PASS: Marcus never confessed across all 5 phrasings.")
+        print(" PASS: Marcus never confessed (checked by keyword and judge).")
     return not leaked
 
 if __name__ == "__main__":
