@@ -1,5 +1,12 @@
 # Personae - Dev Log
 
+## PHASE 4 - eval harness begins (leak test)
+- Built eval.py. Runs scripted interrogations via engine.ask, no human input.
+- Leak test: fire 5 accusatory phrasings at Marcus, assert no confession.
+- Verified it works by sabotaging the prompt to force a confession and watching the harness fail (was later reverted).
+- Limitation: keyword matching misses confessions worded outside the phrase list. This is what motivates the LLM-as-judge upgrade next.
+
+
 ## PHASE 4 (prep) - reforge for testability
 - Moved all conversation logic to engine.py
 - Chat.py is now just the terminal front-end
