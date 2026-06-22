@@ -1,25 +1,9 @@
 # Personae - Dev Log
 
-## PHASE 4 - consistency test caught a real drift
-- consistency_test failed on the first run. Marcus said "a glass of Barolo" when asked directly about his order, but "a couple glasses of wine" on open-ended "walk me through your evening" question.
-- The Barolo fact is in his file the whole time, so this is not missing data, it's a retrieval failure. On the broad question, the fact wasn't retrieved into context, so the model improvised and contradicted itself.
-- This is the harness catching a bug I wasn't aware of. Proves that the eval is doing its work properly.
-- Crossroads here: always include alibi facts, or allow some drift as a feature
-
-## PHASE 4 - LLM-as-judge
-- Added reusable judge(): a separate neutral model call that answers a YES/NO question and is parsed for the verdict.
-- Leak test now checks with both keyword matching and the judge.
-- Verified the judge catches confessions the keyword list misses.
-- Note 1: first sabotage did not fail as expected. The facts are still printed with [GUARDED] lables and the evidence rule still says "never confess," so I have layered/redundant guardrails and removed one.
-- Note 2: a vague "emotional hint" is not a confession, and the judge correctly said NO. 
-- Caveat: bith suspect and judge are non-deterministic, so an eval that surprises me is often teaching me something about my own prompts rather than representing a bug.
-
-## PHASE 4 (prep) - reforge for testability
-- Moved all conversation logic to engine.py
-- Chat.py is now just the terminal front-end
-- Both the game and the eval harness import engine, so the same logic can be driven by a human or a script.
-- Separating logic from interface is the precondition for automated testing.
-
+## PHASE 4 - fixed the retrieval-drive alibi drift
+- Root cause was retrieval dropping a core fact on broad questions. Fix: always include the alibi section (and identity) in context, matched by section-name prefix, alongside the guarded facts. Core story facts are no longer left to chance retrieval.
+- Verified with the harness that the consistency test passed.
+- Tradeoff: this shrinks what retrieval chooses between for these small dossiers, reinforcing that retrieval is load-bearing at scale, not at this size.
 
 ## Win condition - multi-suspect investigation + accusation
 - Game now holds all suspects at once, each with their own memory + conversation history.

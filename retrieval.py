@@ -38,7 +38,10 @@ def parse_case_file(path):
     return chunks
 
 class SuspectMemory:
-    ALWAYS_SECTIONS = {"Who you are"}
+    ALWAYS_PREFIXES = ("Who you are", "Your alibi")
+
+    def _is_always(self, section):
+        return any(section.startswith(p) for p in self.ALWAYS_PREFIXES)
 
     def __init__(self, case_path):
         self.chunks = parse_case_file(case_path)
@@ -47,7 +50,7 @@ class SuspectMemory:
         self.always = []
         self.retrievable = []
         for c in self.chunks:
-            if c["section"] in self.ALWAYS_SECTIONS or c["guarded"]:
+            if self._is_always(c["section"]) or c["guarded"]:
                 self.always.append(c)
             else:
                 self.retrievable.append(c)
