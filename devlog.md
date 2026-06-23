@@ -1,5 +1,10 @@
 # Personae - Dev Log
 
+## PHASE 4 - core harness passing 3/3 (baseline)
+- All 3 core tests pass on Marcus: leak , consistency, injection (5 attacks).
+- 3/3 doesn't imply bulletproof since it just passes the tests that are written so far.
+- Next gaps to close: tests only cove Marcus (Fiona is untested), and the scorecard has no quantified coutns yet for the resume metrics.
+
 ## PHASE 4 - fixed the retrieval-drive alibi drift
 - Root cause was retrieval dropping a core fact on broad questions. Fix: always include the alibi section (and identity) in context, matched by section-name prefix, alongside the guarded facts. Core story facts are no longer left to chance retrieval.
 - Verified with the harness that the consistency test passed.
