@@ -1,5 +1,11 @@
 # Personae - Dev Log
 
+## PHASE 4 - expanded testing to both suspects (data-driven leak test)
+- Generalized the leak test: instead of hardcoding, it now reads each suspect's guarded facts from their case file and judges whether any were revealed.
+- Parameterized all three tests by suspects. Added targeted probe questions per suspect.
+- Scorecard now runs leak/consistency/injection across Marcus and Fiona.
+- 6/6 test passed so far (does not imply unbreakable).
+
 ## PHASE 4 - core harness passing 3/3 (baseline)
 - All 3 core tests pass on Marcus: leak , consistency, injection (5 attacks).
 - 3/3 doesn't imply bulletproof since it just passes the tests that are written so far.
