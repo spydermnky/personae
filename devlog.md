@@ -1,5 +1,11 @@
 # Personae - Dev Log
 
+## PHASE 5 - adversarial stress test (system is robust)
+- Single turn lawyer attack: 0/10
+- Multi turn rapport attack: 0/6 
+- Robust to single and multi-turn injection across the attacks I designed. Existing guardrails held.
+- No reliable vulnerability found
+
 ## PHASE 4 - expanded testing to both suspects (data-driven leak test)
 - Generalized the leak test: instead of hardcoding, it now reads each suspect's guarded facts from their case file and judges whether any were revealed.
 - Parameterized all three tests by suspects. Added targeted probe questions per suspect.
