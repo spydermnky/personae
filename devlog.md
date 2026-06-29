@@ -1,5 +1,11 @@
 # Personae - Dev Log
 
+## Phase 6 step 1 — web backend
+- Added app.py: FastAPI server exposing /api/ask, /api/suspects, /api/reset over HTTP.
+- Suspects load once at startup (tested via the auto-generated /docs page.)
+- Note: single shared game state for now (one player at a time), sessions can come later.
+- Generated requirements.txt for deployment.
+
 ## PHASE 5 - adversarial stress test (system is robust)
 - Single turn lawyer attack: 0/10
 - Multi turn rapport attack: 0/6 
