@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import engine
 
@@ -9,6 +10,10 @@ game = engine.load_suspects()
 class AskRequest(BaseModel):
     suspect: str
     message: str
+
+@app.get("/")
+def home():
+    return FileResponse("index.html")
 
 @app.get("/api/suspects")
 def list_suspects():
