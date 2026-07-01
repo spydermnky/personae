@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Locked Room</title>
+<style>
+  :root {
+    --bg: #14151a;
+    --panel: #1d1f27;
+    --ink: #e7e3da;
+    --muted: #8b8a86;
+    --accent: #c9a227;
+    --detective: #2a3340;
+    --suspect: #26211c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, system-ui, sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+  #app { width: 100%; max-width: 680px; min-height: 100vh; display: flex; flex-direction: column; padding: 20px; }
+  header h1 { font-family: Georgia, serif; font-size: 1.8rem; margin: 0; letter-spacing: 1px; }
+  header .sub { color: var(--muted); margin: 4px 0 16px; font-size: 0.9rem; }
+  #suspects { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  #suspects button {
+    background: var(--panel); color: var(--ink); border: 1px solid #33343c;
+    padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 0.9rem;
+  }
+  #suspects button.active { border-color: var(--accent); color: var(--accent); }
+  #log {
+    flex: 1; background: var(--panel); border-radius: 12px; padding: 16px;
+    overflow-y: auto; margin-bottom: 12px; min-height: 300px;
+  }
+  .msg { margin: 10px 0; line-height: 1.45; }
+  .msg .who { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 2px; }
+  .msg .text { display: inline-block; padding: 10px 14px; border-radius: 10px; white-space: pre-wrap; }
+  .detective { text-align: right; }
+  .detective .text { background: var(--detective); }
+  .suspect .text { background: var(--suspect); }
+  .system { text-align: center; color: var(--muted); font-style: italic; font-size: 0.85rem; }
+  .pending .text { color: var(--muted); }
+  #form { display: flex; gap: 8px; }
+  #input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #33343c; background: var(--panel); color: var(--ink); font-size: 1rem; }
+  #form button { padding: 12px 20px; border: none; border-radius: 10px; background: var(--accent); color: #14151a; font-weight: 600; cursor: pointer; }
+  #reset { margin-top: 10px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; text-decoration: underline; align-self: flex-start; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>The Locked Room</h1>
+    <p class="sub">Daniel Vance was found dead in his office. Interrogate the suspects, then name the killer.</p>
+  </header>
+  <div id="suspects"></div>
+  <div id="log"></div>
+  <form id="form">
+    <input id="input" autocomplete="off" placeholder="Ask a question…" />
+    <button type="submit">Send</button>
+  </form>
+  <button id="reset">Restart case</button>
+</div>
+
+<script>
+  const log = document.getElementById("log");
+  const suspectsDiv = document.getElementById("suspects");
+  let current = null;       // current suspect key
+  let currentName = "";     // current suspect display name
+
+  // Add a line to the chat log. Uses textContent (not innerHTML) so the
+  // model's reply can't inject markup. Returns the element so we can update it.
+  function addLine(who, text, cls) {
+    const div = document.createElement("div");
+    div.className = "msg " + cls;
+    const w = document.createElement("span"); w.className = "who"; w.textContent = who;
+    const t = document.createElement("span"); t.className = "text"; t.textContent = text;
+    div.appendChild(w); div.appendChild(t);
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+    return div;
+  }
+
+  function selectSuspect(key, name) {
+    current = key; currentName = name;
+    document.querySelectorAll("#suspects button").forEach(b =>
+      b.classList.toggle("active", b.dataset.key === key));
+    addLine("—", "You turn to " + name + ".", "system");
+  }
+
+  async function loadSuspects() {
+    const data = await (await fetch("/api/suspects")).json();
+    const entries = Object.entries(data.suspects);
+    for (const [key, name] of entries) {
+      const btn = document.createElement("button");
+      btn.textContent = name; btn.dataset.key = key;
+      btn.onclick = () => selectSuspect(key, name);
+      suspectsDiv.appendChild(btn);
+    }
+    if (entries.length) selectSuspect(entries[0][0], entries[0][1]);
+  }
+
+  async function send(message) {
+    addLine("Detective", message, "detective");
+    const pending = addLine(currentName, "…", "suspect pending");
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ suspect: current, message })
+      });
+      const data = await res.json();
+      pending.querySelector(".text").textContent = data.reply || data.error || "(no reply)";
+      pending.classList.remove("pending");
+    } catch (err) {
+      pending.querySelector(".text").textContent = "(could not reach the server)";
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+
+  document.getElementById("form").onsubmit = (e) => {
+    e.preventDefault();
+    const input = document.getElementById("input");
+    const msg = input.value.trim();
+    if (!msg || !current) return;
+    input.value = "";
+    send(msg);
+  };
+
+  document.getElementById("reset").onclick = async () => {
+    await fetch("/api/reset", { method: "POST" });
+    log.innerHTML = "";
+    addLine("—", "The case resets. Question the suspects again.", "system");
+  };
+
+  loadSuspects();
+</script>
+</body>
+</html>
