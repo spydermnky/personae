@@ -1,5 +1,12 @@
 # Personae - Dev Log
 
+## Phase 6 step 2 - web chat UI
+- Added index.html (HTML/CSS/JS chat page).
+- app.py now serves the page at "/" 
+- The JS calls /api/suspects and /api/ask.
+- Playable in the browser: pick a suspect, ask questions, see replies, restart.
+- WIP: /talk-style accusation + win/lose ending.
+
 ## Phase 6 step 1 — web backend
 - Added app.py: FastAPI server exposing /api/ask, /api/suspects, /api/reset over HTTP.
 - Suspects load once at startup (tested via the auto-generated /docs page.)
